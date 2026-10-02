@@ -4,7 +4,7 @@ import math
 import statistics
 from collections import defaultdict
 
-from .fingerprint import simhash_similarity
+from .fingerprint import minhash_similarity, simhash_similarity
 from .models import FileRecord, SimilarityEdge
 
 
@@ -13,13 +13,34 @@ def similarity_score(left: FileRecord, right: FileRecord) -> tuple[float, str]:
 
     if left.is_text and right.is_text:
         assert left.simhash is not None and right.simhash is not None
-        content = simhash_similarity(left.simhash, right.simhash)
-        line_score = min(left.lines or 0, right.lines or 0) / max(left.lines or 1, right.lines or 1)
-        extension = 1.0 if left.extension == right.extension else 0.0
-        return (
-            content * 0.68 + size_score * 0.14 + line_score * 0.10 + extension * 0.08,
-            "text fingerprint",
+
+        simhash_score = simhash_similarity(left.simhash, right.simhash)
+
+        if left.minhash is not None and right.minhash is not None:
+            minhash_score = minhash_similarity(left.minhash, right.minhash)
+        else:
+            minhash_score = simhash_score
+
+        line_score = (
+            min(left.lines or 0, right.lines or 0)
+            / max(left.lines or 1, right.lines or 1)
         )
+        extension = 1.0 if left.extension == right.extension else 0.0
+
+        score = (
+            simhash_score * 0.50
+            + minhash_score * 0.25
+            + size_score * 0.10
+            + line_score * 0.08
+            + extension * 0.07
+        )
+
+        # A very large size mismatch is a useful negative signal even when two
+        # small shared fragments happen to produce similar fingerprints.
+        if size_score < 0.35 and minhash_score < 0.50:
+            score *= 0.85
+
+        return score, "simhash + minhash"
 
     extension = 1.0 if left.extension == right.extension else 0.0
     entropy_score = max(0.0, 1.0 - abs(left.entropy - right.entropy) / 8.0)

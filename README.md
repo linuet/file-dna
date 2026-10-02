@@ -12,7 +12,8 @@ For each file the analyzer derives:
 
 ```text
 SHA-256               exact identity
-64-bit SimHash        approximate text similarity
+64-bit SimHash        overall text fingerprint similarity
+MinHash signature     token-set overlap / near-duplicate signal
 file size             structural signal
 extension             file family
 byte entropy          content structure
@@ -25,7 +26,7 @@ average line length   text structure
 
 - recursive folder scanning
 - exact duplicate detection with SHA-256
-- near-duplicate text detection with SimHash
+- dual near-duplicate detection with SimHash + MinHash
 - text and binary classification
 - binary structural similarity
 - file-size similarity
@@ -83,14 +84,19 @@ file-dna ../my-project \
 
 ## Similarity model
 
-Text similarity combines:
+Text similarity now uses two independent content fingerprints:
 
 ```text
-68%  SimHash content similarity
-14%  file-size similarity
-10%  line-count similarity
- 8%  extension match
+50%  SimHash fingerprint similarity
+25%  MinHash token-set similarity
+10%  file-size similarity
+ 8%  line-count similarity
+ 7%  extension match
 ```
+
+Using both SimHash and MinHash reduces false positives where two files have
+similar structure or size but do not actually share much content. A strong
+size mismatch can also reduce the final score when token overlap is weak.
 
 The default threshold is `0.78`.
 

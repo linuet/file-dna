@@ -5,6 +5,7 @@ from pathlib import Path
 from .fingerprint import (
     byte_entropy,
     looks_like_text,
+    minhash_signature,
     printable_ratio,
     sha256_bytes,
     simhash64,
@@ -65,6 +66,7 @@ def scan_directory(
             record.words = words
             record.avg_line_length = round(average, 2)
             record.simhash = simhash64(text)
+            record.minhash = minhash_signature(text)
 
         records.append(record)
 

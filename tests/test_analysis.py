@@ -4,7 +4,7 @@ from file_dna.analysis import analyze_records, similarity_score
 from file_dna.models import FileRecord
 
 
-def make_record(path, sha, simhash=0):
+def make_record(path, sha, simhash=0, minhash=None):
     return FileRecord(
         path=path,
         extension=".txt",
@@ -17,6 +17,7 @@ def make_record(path, sha, simhash=0):
         words=20,
         avg_line_length=10.0,
         simhash=simhash,
+        minhash=minhash if minhash is not None else [1] * 24,
     )
 
 
@@ -34,8 +35,18 @@ class AnalysisTests(unittest.TestCase):
         left = make_record("a.txt", "a", 123)
         right = make_record("b.txt", "b", 123)
         score, reason = similarity_score(left, right)
-        self.assertEqual(reason, "text fingerprint")
+        self.assertEqual(reason, "simhash + minhash")
         self.assertAlmostEqual(score, 1.0)
+
+
+    def test_minhash_can_reduce_false_positive(self):
+        left = make_record("a.txt", "a", simhash=123, minhash=[1] * 24)
+        right = make_record("b.txt", "b", simhash=123, minhash=[2] * 24)
+
+        score, _ = similarity_score(left, right)
+
+        self.assertLess(score, 0.80)
+
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ class FileRecord:
     words: int | None = None
     avg_line_length: float | None = None
     simhash: int | None = None
+    minhash: list[int] | None = None
     anomaly_score: float = 0.0
     cluster: int | None = None
 
@@ -24,6 +25,8 @@ class FileRecord:
         data = asdict(self)
         if self.simhash is not None:
             data["simhash"] = f"{self.simhash:016x}"
+        if self.minhash is not None:
+            data["minhash"] = [f"{value:016x}" for value in self.minhash]
         return data
 
 

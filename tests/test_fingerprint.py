@@ -3,6 +3,8 @@ import unittest
 from file_dna.fingerprint import (
     byte_entropy,
     hamming_distance,
+    minhash_signature,
+    minhash_similarity,
     simhash64,
     simhash_similarity,
 )
@@ -22,6 +24,23 @@ class FingerprintTests(unittest.TestCase):
         self.assertGreater(
             simhash_similarity(base, similar),
             simhash_similarity(base, unrelated),
+        )
+
+
+    def test_minhash_separates_similar_and_unrelated_text(self):
+        base = minhash_signature(
+            "server request latency retry timeout response cache"
+        )
+        similar = minhash_signature(
+            "server request latency retry timeout response cache database"
+        )
+        unrelated = minhash_signature(
+            "banana garden telescope mountain piano ocean"
+        )
+
+        self.assertGreater(
+            minhash_similarity(base, similar),
+            minhash_similarity(base, unrelated),
         )
 
     def test_hamming_distance(self):

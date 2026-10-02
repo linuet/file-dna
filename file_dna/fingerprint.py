@@ -83,3 +83,76 @@ def hamming_distance(left: int, right: int) -> int:
 
 def simhash_similarity(left: int, right: int) -> float:
     return 1.0 - hamming_distance(left, right) / 64.0
+
+
+MINHASH_SIZE = 24
+MINHASH_PRIME = (1 << 61) - 1
+
+
+def _token_shingles(text: str) -> list[str]:
+    tokens = [token.lower() for token in TOKEN_RE.findall(text)]
+
+    if not tokens:
+        return []
+
+    if len(tokens) < 3:
+        return sorted(set(tokens))
+
+    return sorted({
+        " ".join(tokens[index:index + 3])
+        for index in range(len(tokens) - 2)
+    })
+
+
+def minhash_signature(text: str, size: int = MINHASH_SIZE) -> list[int]:
+    """Return a deterministic MinHash signature for token shingles.
+
+    SimHash is good at measuring overall fingerprint distance. MinHash adds a
+    separate estimate of token-set overlap, which helps distinguish files that
+    merely have similar size/shape from files that actually share content.
+    """
+    shingles = _token_shingles(text)
+
+    if not shingles:
+        return [0] * size
+
+    base_hashes = [
+        int.from_bytes(
+            hashlib.blake2b(
+                shingle.encode("utf-8"),
+                digest_size=8,
+            ).digest(),
+            "big",
+        ) % MINHASH_PRIME
+        for shingle in shingles
+    ]
+
+    signature: list[int] = []
+
+    for index in range(size):
+        # Deterministic coefficients for a family of universal hash functions.
+        a = (1_103_515_245 + index * 2_654_435_761) % MINHASH_PRIME or 1
+        b = (12_345 + index * 97_531) % MINHASH_PRIME
+
+        signature.append(
+            min((a * value + b) % MINHASH_PRIME for value in base_hashes)
+        )
+
+    return signature
+
+
+def minhash_similarity(left: list[int], right: list[int]) -> float:
+    if not left or not right:
+        return 0.0
+
+    length = min(len(left), len(right))
+
+    if length == 0:
+        return 0.0
+
+    matches = sum(
+        1 for index in range(length)
+        if left[index] == right[index]
+    )
+
+    return matches / length

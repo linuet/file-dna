@@ -1,4 +1,4 @@
-# file-dna
+# file-dna python
 
 `file-dna` analyzes a directory and builds a compact "DNA profile" of its files.
 
